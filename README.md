@@ -1,2 +1,6 @@
 # VIZRT-ARTIST
-VizRT Artist's Plug-ins
+_by Israel:_ 
+Artist plugins
+
+### List of plugins ###
+ * 
