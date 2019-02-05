@@ -1,63 +1,39 @@
-#ACTION KEYFRAMES GUIDE
+# ACTION KEYFRAMES GUIDE
+A guide to scripting action keyframes in VizRT
 
+## General:
+* `;` Are used to seperate multiple commands in a single keyframe.
 
+## Stage:
+* `MAIN_SCENE*STAGE*DIRECTOR*directorname` Reference the first director named *directorname* in the main scene's STAGE.
+* `RENDERER*STAGE*DIRECTOR*directorname` Reference the first director named *directorname* in the loaded scene's STAGE.
+* `THIS_SCENE*STAGE*DIRECTOR*directorname` Reference the first director named *directorname* in the current scene' STAGE.
+  * *First meaning top most in order and top most in parentage.*
+  * *Since `THIS_DIRECTOR` is shorter than `THIS_SCENE...` I will use `THIS_DIRECTOR` in the examples bellow. But note that either can be used, and `THIS_SCENE..` is sometimes better suited.*
 
-'directorname = the name of the director you want to affect
-'keyname = the name of the key frame or action key frame you want to affect
-'groupname = the name of the container you want to affect
-'tagname = the name of a tag/stop point tou want to affect
-'scriptsub = the name of a subroutine in a script
-'; = semi-colons are used to end one script and move to another. if your script is only one line(action) then it is not needed.
+## Director:
+* `THIS_DIRECTOR` Reference the director the keyframe is currently in.
+* `THIS_DIRECTOR*ACTION*actionname*KEY*$keyname*TIME SET F20;` Moves the first action keyframe named *keyname* in the action named *actionname* in the current director to frame 20 on the timeline.
+* `THIS_DIRECTOR CONTINUE;` Runs a continue command on the currect director.
+* `THIS_DIRECTOR CONTINUE REVERSE;` Runs a continue command in reverse on the currect director.
+* `THIS_DIRECTOR*KEY*$keyname*TIME SET F20;` Moves the keyframe named *keyname* in the current director to frame 20 on the timeline. 
+* `THIS_DIRECTOR SHOW F20;` Places the timeline of the current director at frame 20. 
+* `THIS_DIRECTOR SHOW $tagname;` Places the timeline of the current director at the same position as the first Stop/Tag/Pause point named *tagname*.
+* `THIS_DIRECTOR START;` Runs a starts command on the currect director.
+* ~~`THIS_SCENE*GFX*1*STAGE START` Starts graphic channle 1~~ Has been removed since version 3.5 I believe.
 
-THIS_DIRECTOR		= Works As Exactly what you think
-
-
-THIS_SCENE*STAGE*DIRECTOR*directorname START;                                	= Starts Director(directorname)
-
-THIS_SCENE*STAGE*DIRECTOR*directorname SHOW F20;     							= Go to Frame 20 in Timeline
-
-THIS_SCENE*STAGE*DIRECTOR*directorname CONTINUE;	                  			= Continue from this point in Time.
-
-THIS_SCENE*STAGE*DIRECTOR*directorname CONTINUE REVERSE;                     	= Continues in reverse from this point in Time.
-THIS_SCENE*STAGE*DIRECTOR*directorname*ACTION*A*KEY*$keyname*TIME SET F20;  	= Sets Action keyframe(keyname) to frame 20.
-
-THIS_SCENE*STAGE*DIRECTOR*directorname SHOW $tagname;                  			= Go to Stop point "tagname" 
-
-
-
-RENDERER*TREE*$groupname*TRANSFORMATION*POSITION*Y SET 45.0;            	= Set Position of Container(groupname)
-
-RENDERER*TREE*$groupname*ACTIVE SET 0;                                  	= Set Container(groupname) On/Off
-
-RENDERER*TREE*$groupname*FUNCTION*Omo*vis_con SET 0;	                	= Set Omo Selector
-
-RENDERER*STAGE*DIRECTOR*groupname*KEY*$keyname*TIME SET F5;            		= change stop point time frame
-
-RENDERER*TREE*$groupname*FUNCTION*Grid*num_row SET 5;                   	= change the row set in a grid arrange
-
-RENDERER*TREE*$groupname*GEOM*#608411*height SET 200.0	                	= change the height of the noggi through animation 
-*find geom # name through console
-*(This number changes all the time: vizid).
-
-RENDERER*TREE*$groupname*FUNCTION*Maxsize*WIDTH_X SET 800.0;				= Change maxsize width
-
-RENDERER*TREE*$groupname*FUNCTION*Maxsize*DEFAULT_SCALE_Y SET .4			= Change maxsize Y scale
-
-THIS_SCENE*GFX*1*STAGE START												= Starts graphic channel 1
-
-
-TRANSFORMATION*POSITION*Y
-FUNCTION*Grid*num_row
-GEOM*height
-
-
-
-RENDERER*TREE*$groupname*FUNCTION*Grid*num_row SET 1; 
-RENDERER*TREE*$groupname*TRANSFORMATION*POSITION*Y SET 50; 
-RENDERER*TREE*$groupname*ANIMATION*KEY*$keyname*VALUE SET 64;
-THIS_SCENE*TREE*$groupname*SCRIPT INVOKE scriptsub;							= invokes subroutine in the script
-
-
+## Tree:
+* `THIS_SCENE*TREE*$containername` Reference the first container named *containername* in the current scene TREE.
+  * *First meaning top most in order and top most in parentage.*
+* `THIS_SCENE*TREE*$containername*TRANSFORMATION*POSITION*Y SET 45.0;` Sets container named *containername* y-position to 45.0.
+* `THIS_SCENE*TREE*$containername*ACTIVE SET 0;` Sets ... visibility to off.
+* `THIS_SCENE*TREE*$containername*FUNCTION*Omo*vis_con SET 0;` Sets ... omo selector to 0.
+* `THIS_SCENE*TREE*$containername*FUNCTION*Grid*num_row SET 5;` Changes the ... row set in a grid arrange to 5.
+* `THIS_SCENE*TREE*$containername*FUNCTION*Maxsize*WIDTH_X SET 800.0;` Changes the ... maxsize width to 800.0.
+* `THIS_SCENE*TREE*$containername*FUNCTION*Maxsize*DEFAULT_SCALE_Y SET .4;` Changes the ... maxsize Y scale to .4.
+* `THIS_SCENE*TREE*$containername*GEOM*height SET 200.0;` Changes the ... geometry height to 200.0.
+  * This can also be written using the vizid(*#123456*), but since that always changes I would advise against it. `THIS_SCENE*TREE*$containername*GEOM*#123456*height SET 200.0`
+* `THIS_SCENE*TREE*$containername*SCRIPT INVOKE scriptsub;` Invokes the subroutine named *scriptsub* in the script plugin in the first container named *containername.*
 
 
 
