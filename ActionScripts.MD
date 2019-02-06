@@ -14,6 +14,8 @@ A guide to scripting action keyframes in VizRT
 ## Director:
 * `THIS_DIRECTOR` Reference the director the keyframe is currently in.
 * `THIS_DIRECTOR*ACTION*actionname*KEY*$keyname*TIME SET F20;` Moves the first action keyframe named *keyname* in the action named *actionname* in the current director to frame 20 on the timeline.
+* `THIS_DIRECTOR*DIRECTION SET REVERSE;` Sets the currect director to play in reverse.
+  * `THIS_DIRECTOR*DIRECTION SET NORMAL;` Can also be set to normal.
 * `THIS_DIRECTOR CONTINUE;` Runs a continue command on the currect director.
 * `THIS_DIRECTOR CONTINUE REVERSE;` Runs a continue command in reverse on the currect director.
 * `THIS_DIRECTOR*KEY*$keyname*TIME SET F20;` Moves the keyframe named *keyname* in the current director to frame 20 on the timeline. 
