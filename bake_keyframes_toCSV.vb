@@ -1,5 +1,4 @@
 sub OnInitParameters()
-	'RegisterFileSelector("folderPath", "Select CSV File", "", "", "")
 	Dim rbArr As Array[String]
 	"Starts From 0; Starts From First Keyframe".Split(";", rbArr)
 	RegisterParameterString("folderPath", "Folder Path","C:\\", 65, 999, "")
@@ -43,6 +42,7 @@ Sub bakeData()
 End Sub
 
 Sub outputData()
+	println "DATA HERE"
 	'Itterate through all keyframes in all channels and create csv structure
 	'Output csv file to desired folder
 End Sub
@@ -64,7 +64,6 @@ Function outputDirChArray() As Array[Array[String]]
 			if x <> 0 then innerArr.Clear()
 			x = 0
 		end if
-		'ch.AddKeyframe(i/59.94)
 	next
 ' DELETE ::: PRINTS =============
 	'for each line in outArr
@@ -120,8 +119,7 @@ Sub bakeKeyframes(chArr As Array[String])
 	Dim startFrame As Integer = GetParameterInt("startPoint") * CInt(CDbl(System.SendCommand(kfIdArr[0] & "*TIME GET"))/System.OutputRefreshRate)
 	Dim endFrame As Integer = CInt(CDbl(System.SendCommand(kfIdArr[kfIdArr.UBound] & "*TIME GET"))/System.OutputRefreshRate)
 	' Bake in-between keyframes
-	println "================================="
-	for i=startFrame to endFrame
+	FOR i=startFrame TO endFrame
 		Dim isKF As Boolean = False
 		Dim dropframeOffset As Integer = 22/System.OutputRefreshRate
 		Dim tempTime As Integer = CInt( 1000 * (i*System.OutputRefreshRate) )
@@ -129,12 +127,17 @@ Sub bakeKeyframes(chArr As Array[String])
 		for each kfId in kfIdArr
 			Dim kfTime As Integer = CInt( 1000 * CDbl(System.SendCommand(kfId & "*TIME GET")) )
 			Dim subVal As Integer = Sign(CDbl(tempTime - kfTime)) * (tempTime - kfTime)
-			IF subVal <= 5 AND subVal >=0 THEN isKF = True
+			IF subVal <= 5 AND subVal >=0 THEN
+				' ALREADY HAS A FRAME
+				isKF = True
+			END IF
 		next
-		if CInt(tempTime/dropframeOffset) <> 0 then println CInt(tempTime/dropframeOffset)
-		println isKF
-	next
-	println "================================="
+		If not(isKF) Then
+			' Bake New KeyFrame
+			Dim newTime As Double = CDbl(tempTime)/1000
+			System.SendCommand(chArr[2] & " ADD_KEYFRAME_AT_TIME " & newTime)
+		End If
+	NEXT
 End Sub
 
 Sub createCSV()
