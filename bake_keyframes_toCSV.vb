@@ -95,11 +95,6 @@ Function chSubArray(MainArr As Array[Array[String]], vizId As String) As Array[A
 		str.join(line, " - ")
 		println str
 	next
-	println("=====================================")
-	for i=0 to 200
-		println i*System.OutputRefreshRate
-	next
-	println("=====================================")
 ' ===============================
 
 	chSubArray = outArr
@@ -111,7 +106,6 @@ End Function
 Sub bakeKeyframes(chArr As Array[String])
 	Dim x As Integer = 0
 	Dim kfIdArr As Array[String]
-	Dim startFrom As Integer = GetParameterInt("startPoint")
 	' ERROR CHECK: Does channel have keyframes?
 	IF CDbl(System.SendCommand(chArr[2] & "*KEYN*1*TIME GET")) = 0 then Exit Sub
 	' Create an array from current keyframe ids
@@ -120,15 +114,27 @@ Sub bakeKeyframes(chArr As Array[String])
 		Dim nextKF As String = System.SendCommand(chArr[2] & "*KEYN*"&x&" GET_NEXT_KEYFRAME")
 		nextKF.trim()
 		if nextKF = "" then Exit Do
-' DELETE ::: FAILSAFE:: ========
-		if x > 20 then Exit Do
-' ==============================
 		x += 1
 	Loop
-
-	for each kfId in kfIdArr
-		println System.SendCommand(kfId & "*TIME GET")
+	' Find start frame and end frame
+	Dim startFrame As Integer = GetParameterInt("startPoint") * CInt(CDbl(System.SendCommand(kfIdArr[0] & "*TIME GET"))/System.OutputRefreshRate)
+	Dim endFrame As Integer = CInt(CDbl(System.SendCommand(kfIdArr[kfIdArr.UBound] & "*TIME GET"))/System.OutputRefreshRate)
+	' Bake in-between keyframes
+	println "================================="
+	for i=startFrame to endFrame
+		Dim isKF As Boolean = False
+		Dim dropframeOffset As Integer = 22/System.OutputRefreshRate
+		Dim tempTime As Integer = CInt( 1000 * (i*System.OutputRefreshRate) )
+		tempTime = tempTime - CInt(tempTime/dropframeOffset)
+		for each kfId in kfIdArr
+			Dim kfTime As Integer = CInt( 1000 * CDbl(System.SendCommand(kfId & "*TIME GET")) )
+			Dim subVal As Integer = Sign(CDbl(tempTime - kfTime)) * (tempTime - kfTime)
+			IF subVal <= 5 AND subVal >=0 THEN isKF = True
+		next
+		if CInt(tempTime/dropframeOffset) <> 0 then println CInt(tempTime/dropframeOffset)
+		println isKF
 	next
+	println "================================="
 End Sub
 
 Sub createCSV()
