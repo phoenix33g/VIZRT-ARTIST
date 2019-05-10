@@ -80,8 +80,10 @@ Function chSubArray(MainArr As Array[Array[String]], vizId As String) As Array[A
 	For Each line In MainArr
 		IF line[2] = vizId THEN dirPathStr = line[0]
 		If line[0].StartsWith(dirPathStr) Then
+			' Updating naming convension to help find values
 			line[3].Substitute("\"", "", True)
 			line[3].MakeUpper()
+			' Pushing data to array
 			outArr.Push(line)
 		End If
 	Next
@@ -105,8 +107,12 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 	Dim kfIdArr As Array[String]
 	Dim valArr As Array[String]
 	' ERROR CHECK: Does channel have keyframes?
-	IF CDbl(System.SendCommand(chArr[2] & "*KEYN*1*TIME GET")) = 0 then GrpChName = chArr[3]
-	IF CDbl(System.SendCommand(chArr[2] & "*KEYN*1*TIME GET")) = 0 then Exit Sub
+	IF CDbl(System.SendCommand(chArr[2] & "*KEYN*1*TIME GET")) = 0 then
+		' Don't Transformation name for empty split channels
+		if chArr[3] <> "X" and chArr[3] <> "Y" and chArr[3] <> "Z" Then GrpChName = chArr[3]
+		' Exit if channel doesn't have keyframes
+		Exit Sub
+	END IF
 	' Create an array from current keyframe ids
 	Do
 		kfIdArr.Push(System.SendCommand(chArr[2] & "*KEYN*"&x&"*OBJECT_ID GET"))
@@ -119,14 +125,19 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 	Dim dirIdStr As String = System.SendCommand(chArr[2] & "*DIRECTOR*OBJECT_ID GET")
 	Dim startFrame As Integer = GetParameterInt("startPoint") * CInt(CDbl(System.SendCommand(kfIdArr[0] & "*TIME GET"))/System.OutputRefreshRate)
 	Dim endFrame As Integer = CInt(CDbl(System.SendCommand(kfIdArr[kfIdArr.UBound] & "*TIME GET"))/System.OutputRefreshRate)
-	' Get an array of all the values in this channel
+	' Find Transformation type for split channel
+	If chArr[3] = "X" or chArr[3] = "Y" or chArr[3] = "Z" Then chArr[3] = GrpChName &"*"& chArr[3]
+	' Get an array of all the values in this channel (To help preserve the animation curve, some data will be lost with each pass)
 	FOR i=startFrame TO endFrame
 		Dim newTime As Double = i*System.OutputRefreshRate
 		System.SendCommand(dirIdStr & " SHOW " & newTime)
 		valArr.Push( System.SendCommand(contId & "*TRANSFORMATION*" & chArr[3] & " GET") )
 	NEXT
-	println valArr.UBound
-	' Bake in-between keyframes
+	' Bake in-between keyframes (With straight animation curves)
+	println chArr[3]
+	println kfIdArr.UBound
+	println startFrame
+	println endFrame
 	FOR i=startFrame TO endFrame
 		Dim isKF As Boolean = False
 		Dim dropframeOffset As Integer = 22/System.OutputRefreshRate
@@ -141,22 +152,23 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 			END IF
 		next
 		If not(isKF) Then
-			' Bake New KeyFrame
-			Dim newTime As Double = CDbl(tempTime)/1000
+			' Bake New KeyFrame (time offset, calling next frame position)
+			Dim newTime As Double = (i+1)*System.OutputRefreshRate
+			newTime = newTime - (newTime/dropframeOffset)
 			System.SendCommand(dirIdStr & " SHOW " & newTime)
-			'System.SendCommand(kfIdArr[0] & " ADD_KEYFRAME")
 			System.SendCommand(chArr[2] & " ADD_KEYFRAME")
 		End If
 	NEXT
-	' Add values to new keyframes
+	' Add values to new keyframes (Pull animation curves)
 	For i=0 To valArr.UBound
-                            System.SendCommand(chArr[2] & "*KEYN*"&i& "*VALUE SET " & valArr[i])
+		System.SendCommand(chArr[2] & "*KEYN*"&i& "*VALUE SET " & valArr[i])
 	Next
 End Sub
 
 Sub createCSV()
 	Dim filePath As String = GetParameterString("filePath")
 End Sub
+
 
 
 
