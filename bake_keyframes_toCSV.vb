@@ -153,7 +153,7 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 		valArr.Push( System.SendCommand(contId & "*" & typeVal & chArr[3] & " GET") )
 	NEXT
 	' Bake in-between keyframes (With straight animation curves)
-	println dirIdStr
+	println System.SendCommand(dirIdStr & "*NAME GET")
 	println chArr[3]
 	println kfIdArr.UBound
 	println startFrame
@@ -175,7 +175,8 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 			' Bake New KeyFrame (time offset, calling next frame position)
 			Dim newTime As Double = (i+1)*System.OutputRefreshRate
 			newTime = newTime - (newTime/dropframeOffset)
-			System.SendCommand(dirIdStr & " SHOW " & newTime)
+			' Must move the stage for multiple director possibilities
+			System.SendCommand(dirIdStr & "*STAGE SHOW " & newTime)
 			System.SendCommand(chArr[2] & " ADD_KEYFRAME")
 		End If
 	NEXT
