@@ -45,6 +45,9 @@ Sub bakeData()
 End Sub
 
 Sub outputData()
+	println("=====================================")
+	println("=====================================")
+
 	Dim cont As Container = this
 	Dim contId As String = "#" & CStr(cont.vizId)
 	'Create full array of all elements in this Stage
@@ -54,6 +57,10 @@ Sub outputData()
 	Dim chsArr As Array[Array[String]] = chSubArray(MainArr, contId)
 
 	'Itterate through all keyframes in all channels
+	Dim dataArrs As Array[Array[String]]
+	For Each chArr In chsArr
+		dataArrs.Push( createDataArr(chArr) )
+	Next
 
 	'Create csv structure
 
@@ -61,6 +68,7 @@ Sub outputData()
 	'Output csv file to desired folder
 	'createCSV("data, more data")
 End Sub
+
 
 ' FUNCTIONS ==============================================================================
 ' ========================================================================================
@@ -86,8 +94,6 @@ End Function
 Function chSubArray(MainArr As Array[Array[String]], vizId As String) As Array[Array[String]]
 	Dim outArr As Array[Array[String]]
 	Dim dirPathStr As String = "---NOPE---"
-	println("=====================================")
-	println("=====================================")
 	For Each line In MainArr
 		IF line[2] = vizId THEN dirPathStr = line[0]
 		If line[0].StartsWith(dirPathStr) Then
@@ -98,16 +104,47 @@ Function chSubArray(MainArr As Array[Array[String]], vizId As String) As Array[A
 			outArr.Push(line)
 		End If
 	Next
+	chSubArray = outArr
+End Function
+
+Function getFrame(kfId As String) As Integer
+	getFrame = CInt(CDbl(System.SendCommand(kfId & "*TIME GET"))/System.OutputRefreshRate)
+End Function
+
+Function createDataArr(chArr As Array[String]) As Array[String]
+	Dim x As Integer = 0
+	Dim dataArr As Array[String]
+	' ERROR CHECK: Does channel have keyframe?
+	IF CDbl(System.SendCommand(chArr[2] & "*KEYN*1*TIME GET")) = 0 then
+		' Don't Transformation name for empty split channels
+		if chArr[3] <> "X" and chArr[3] <> "Y" and chArr[3] <> "Z" Then GrpChName = chArr[3]
+		' Exit if channel doesn't have keyframes
+		Exit Function
+	END IF
+	' Select type of Animation
+	Select Case chArr[3]
+		Case "X","Y","Z"
+			chArr[3] = GrpChName &"*"& chArr[3]
+	End Select
+	' First data info field
+	Dim kfId0 As String = System.SendCommand(chArr[2] & "*KEYN*0*OBJECT_ID GET")
+	dataArr.Push(chArr[3] &";"& CStr(getFrame(kfId0)))
+	' Create an array of the current keyframe values
+	DO
+		Dim kfId As String = System.SendCommand(chArr[2] & "*KEYN*"&x&"*OBJECT_ID GET")
+		dataArr.Push(System.SendCommand(kfId & "*VALUE GET"))
+		Dim nextKF As String = System.SendCommand(kfId & " GET_NEXT_KEYFRAME")
+		nextKF.trim()
+		If nextKF = "" then Exit Do
+		x += 1
+	LOOP
 
 ' DELETE ::: PRINTS =============
-	for each line in outArr
-		dim str As String = ""
-		str.join(line, " - ")
-		println str
-	next
+	Dim str As String = ""
+	str.join(dataArr, "\n")
+	println str
+	println("------------------------------------------------------------------")
 ' ===============================
-
-	chSubArray = outArr
 End Function
 
 
@@ -133,19 +170,20 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 		if nextKF = "" then Exit Do
 		x += 1
 	Loop
-	' If anamation is Position, Rotation or Scale
-	IF chArr[3] = "POSITION" or chArr[3] = "ROTATION" or chArr[3] = "SCALING" THEN typeVal = "TRANSFORMATION*"
-	' If anamation is ALPHA
-	IF chArr[3] = "ALPHA" THEN typeVal = "ALPHA*"
-	' Find start frame and end frame
+	' Select type of Animation
+	Select Case chArr[3]
+		Case "POSITION","ROTATION","SCALING"
+			typeVal = "TRANSFORMATION*"
+		Case "X","Y","Z"
+			chArr[3] = GrpChName &"*"& chArr[3]
+			typeVal = "TRANSFORMATION*"
+		Case "ALPHA"
+			typeVal = "ALPHA*"
+	End Select
+	' Find director, start frame and end frame
 	Dim dirIdStr As String = System.SendCommand(chArr[2] & "*DIRECTOR*OBJECT_ID GET")
-	Dim startFrame As Integer = GetParameterInt("startPoint") * CInt(CDbl(System.SendCommand(kfIdArr[0] & "*TIME GET"))/System.OutputRefreshRate)
-	Dim endFrame As Integer = CInt(CDbl(System.SendCommand(kfIdArr[kfIdArr.UBound] & "*TIME GET"))/System.OutputRefreshRate)
-	' Find Transformation type for split channel
-	If chArr[3] = "X" or chArr[3] = "Y" or chArr[3] = "Z" Then
-		chArr[3] = GrpChName &"*"& chArr[3]
-		typeVal = "TRANSFORMATION*"
-	End If
+	Dim startFrame As Integer = GetParameterInt("startPoint") * getFrame( kfIdArr[0] )
+	Dim endFrame As Integer = getFrame( kfIdArr[kfIdArr.UBound] )
 	' Get an array of all the values in this channel (To help preserve the animation curve, some data will be lost with each pass)
 	FOR i=startFrame TO endFrame
 		Dim newTime As Double = i*System.OutputRefreshRate
@@ -153,11 +191,6 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 		valArr.Push( System.SendCommand(contId & "*" & typeVal & chArr[3] & " GET") )
 	NEXT
 	' Bake in-between keyframes (With straight animation curves)
-	println System.SendCommand(dirIdStr & "*NAME GET")
-	println chArr[3]
-	println kfIdArr.UBound
-	println startFrame
-	println endFrame
 	FOR i=startFrame TO endFrame
 		Dim isKF As Boolean = False
 		Dim dropframeOffset As Integer = 22/System.OutputRefreshRate
