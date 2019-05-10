@@ -26,13 +26,11 @@ end sub
 ' EVENT SUBROUTINES ======================================================================
 ' ========================================================================================
 Sub bakeData()
-	Dim dir As Director = this.GetDirector()
-	Dim kfArray As Array[Keyframe]
-	Dim chArray As Array[Channel]
-	Dim contId As String = "#" & CStr(this.vizId)
+	Dim cont As Container = this
+	Dim contId As String = "#" & CStr(cont.vizId)
 	'Check if animated
-	if not(this.IsAnimated()) then println "ERROR:: Container Not Animated"
-	if not(this.IsAnimated()) then exit Sub
+	if not(cont.IsAnimated()) then println "ERROR:: Container Not Animated"
+	if not(cont.IsAnimated()) then exit Sub
 
 	'Create full array of all elements in this Stage
 	Dim MainArr As Array[Array[String]] = outputDirChArray()
@@ -47,9 +45,21 @@ Sub bakeData()
 End Sub
 
 Sub outputData()
-	'Itterate through all keyframes in all channels and create csv structure
+	Dim cont As Container = this
+	Dim contId As String = "#" & CStr(cont.vizId)
+	'Create full array of all elements in this Stage
+	Dim MainArr As Array[Array[String]] = outputDirChArray()
+
+	'Find sub array of desired channels (this container)
+	Dim chsArr As Array[Array[String]] = chSubArray(MainArr, contId)
+
+	'Itterate through all keyframes in all channels
+
+	'Create csv structure
+
+
 	'Output csv file to desired folder
-	createCSV("data, more data")
+	'createCSV("data, more data")
 End Sub
 
 ' FUNCTIONS ==============================================================================
@@ -105,6 +115,7 @@ End Function
 ' ========================================================================================
 Sub bakeKeyframes(chArr As Array[String], contId As String)
 	Dim x As Integer = 0
+	Dim typeVal As String = ""
 	Dim kfIdArr As Array[String]
 	Dim valArr As Array[String]
 	' ERROR CHECK: Does channel have keyframes?
@@ -122,19 +133,27 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 		if nextKF = "" then Exit Do
 		x += 1
 	Loop
+	' If anamation is Position, Rotation or Scale
+	IF chArr[3] = "POSITION" or chArr[3] = "ROTATION" or chArr[3] = "SCALING" THEN typeVal = "TRANSFORMATION*"
+	' If anamation is ALPHA
+	IF chArr[3] = "ALPHA" THEN typeVal = "ALPHA*"
 	' Find start frame and end frame
 	Dim dirIdStr As String = System.SendCommand(chArr[2] & "*DIRECTOR*OBJECT_ID GET")
 	Dim startFrame As Integer = GetParameterInt("startPoint") * CInt(CDbl(System.SendCommand(kfIdArr[0] & "*TIME GET"))/System.OutputRefreshRate)
 	Dim endFrame As Integer = CInt(CDbl(System.SendCommand(kfIdArr[kfIdArr.UBound] & "*TIME GET"))/System.OutputRefreshRate)
 	' Find Transformation type for split channel
-	If chArr[3] = "X" or chArr[3] = "Y" or chArr[3] = "Z" Then chArr[3] = GrpChName &"*"& chArr[3]
+	If chArr[3] = "X" or chArr[3] = "Y" or chArr[3] = "Z" Then
+		chArr[3] = GrpChName &"*"& chArr[3]
+		typeVal = "TRANSFORMATION*"
+	End If
 	' Get an array of all the values in this channel (To help preserve the animation curve, some data will be lost with each pass)
 	FOR i=startFrame TO endFrame
 		Dim newTime As Double = i*System.OutputRefreshRate
 		System.SendCommand(dirIdStr & " SHOW " & newTime)
-		valArr.Push( System.SendCommand(contId & "*TRANSFORMATION*" & chArr[3] & " GET") )
+		valArr.Push( System.SendCommand(contId & "*" & typeVal & chArr[3] & " GET") )
 	NEXT
 	' Bake in-between keyframes (With straight animation curves)
+	println dirIdStr
 	println chArr[3]
 	println kfIdArr.UBound
 	println startFrame
