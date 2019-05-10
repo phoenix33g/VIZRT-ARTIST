@@ -150,7 +150,7 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 	NEXT
 	' Add values to new keyframes
 	For i=0 To valArr.UBound
-		System.SendCommand(chArr[2] & "*KEYN*"&i& "*XYZ SET " & valArr[i])
+                            System.SendCommand(chArr[2] & "*KEYN*"&i& "*VALUE SET " & valArr[i])
 	Next
 End Sub
 
