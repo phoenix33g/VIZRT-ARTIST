@@ -4,11 +4,12 @@ DIM GrpChName AS STRING = ""
 sub OnInitParameters()
 	Dim rbArr As Array[String]
 	"Starts From 0; Starts From First Keyframe".Split(";", rbArr)
-	RegisterParameterString("folderPath", "Folder Path","C:\\", 65, 999, "")
-	RegisterParameterString("fileName", "File Name","sample.csv", 65, 999, "")
 	RegisterRadioButton("startPoint", "Starts from?", 1, rbArr)
-	RegisterPushButton("bake", " - BAKE KEYFRAMES - ", 0)
-	RegisterPushButton("load", " - LOAD DATA TO CSV - ", 1)
+	RegisterPushButton("bake", "BAKE KEYFRAMES", 0)
+	RegisterParameterText("divider1", "", 450, 15)
+	RegisterParameterString("folderPath", "Folder Path","C:\\", 65, 999, "")
+	RegisterParameterString("fileName", "File Name","sample", 65, 999, "")
+	RegisterPushButton("load", "LOAD DATA TO CSV", 1)
 end sub
 
 
@@ -46,9 +47,9 @@ Sub bakeData()
 End Sub
 
 Sub outputData()
-	println "DATA HERE"
 	'Itterate through all keyframes in all channels and create csv structure
 	'Output csv file to desired folder
+	createCSV("data, more data")
 End Sub
 
 ' FUNCTIONS ==============================================================================
@@ -165,11 +166,21 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 	Next
 End Sub
 
-Sub createCSV()
-	Dim filePath As String = GetParameterString("filePath")
+Sub createCSV(data As String)
+	Dim folderPath As String = GetParameterString("folderPath")
+	Dim fileName As String = GetParameterString("fileName")
+	Dim filePath As String = folderPath &"\\"& fileName
+	Dim x As Integer = 0
+	' ERROR CHECK:: Not file path
+	IF Not(System.DirectoryExists(folderPath)) THEN println "ERROR:: Folder path doesn't exists"
+	IF Not(System.DirectoryExists(folderPath)) THEN EXIT SUB
+	' Check if file exists (if does, create new name with tail '_#')
+	DO
+		Dim fpath As String = filePath & ".csv"
+		If x>0 Then fpath = filePath & "_" & x & ".csv"
+		IF Not(System.FileExists(fpath)) THEN filePath = fpath
+		IF Not(System.FileExists(fpath)) THEN EXIT DO
+		x += 1
+	LOOP
+	System.SaveTextFile(filePath, data)
 End Sub
-
-
-
-
-
