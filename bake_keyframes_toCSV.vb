@@ -205,7 +205,7 @@ Function formatToCSV(dataArr As Array[Array[String]]) As String
 		dim titleArr, outArr as array[string]
 		kfArr[0].split(";", titleArr)
 		dim subVal As Integer = CInt(titleArr[1]) - smallestVal
-		outArr.Push(titleArr[0])
+		outArr.Push("\"" & titleArr[0] & "\"")
 		For i=1 To subVal
 			outArr.Push(kfArr[1])
 		Next
@@ -225,7 +225,7 @@ Function formatToCSV(dataArr As Array[Array[String]]) As String
 			If str = "" Then
 				str = dataArr[j][x]
 			Else
-				str = str &";"& dataArr[j][x]
+				str = str &","& dataArr[j][x]
 			End If
 		Next
 		If formatedStr = "" Then
@@ -327,4 +327,3 @@ Sub createCSV(data As String)
 	LOOP
 	System.SaveTextFile(filePath, data)
 End Sub
-
