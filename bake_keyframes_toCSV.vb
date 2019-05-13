@@ -26,6 +26,10 @@ end sub
 ' EVENT SUBROUTINES ======================================================================
 ' ========================================================================================
 Sub bakeData()
+	println("=====================================")
+	println "++++++++ PLEASE WAIT ++++++++++++++++"
+	println("=====================================")
+
 	Dim cont As Container = this
 	Dim contId As String = "#" & CStr(cont.vizId)
 	'Check if animated
@@ -42,10 +46,15 @@ Sub bakeData()
 	For Each chArr In chsArr
 		if chArr[1].StartsWith("CChannel") then bakeKeyframes(chArr, contId)
 	Next
+
+	println("=====================================")
+	println "+++++++++++++ DONE ++++++++++++++++++"
+	println("=====================================")
 End Sub
 
 Sub outputData()
 	println("=====================================")
+	println "++++++++ PLEASE WAIT ++++++++++++++++"
 	println("=====================================")
 
 	Dim cont As Container = this
@@ -57,16 +66,22 @@ Sub outputData()
 	Dim chsArr As Array[Array[String]] = chSubArray(MainArr, contId)
 
 	'Itterate through all keyframes in all channels
-	Dim dataArrs As Array[Array[String]]
+	Dim dataArr As Array[Array[String]]
 	For Each chArr In chsArr
-		dataArrs.Push( createDataArr(chArr) )
+		dim tempArr as array[string] = createDataArr(chArr)
+		If tempArr.UBound <> -1 Then dataArr.Push( tempArr )
 	Next
 
 	'Create csv structure
+	Dim data As String = formatToCSV(dataArr)
 
 
 	'Output csv file to desired folder
-	'createCSV("data, more data")
+	createCSV(data)
+
+	println("=====================================")
+	println "+++++++++++++ DONE ++++++++++++++++++"
+	println("=====================================")
 End Sub
 
 
@@ -119,6 +134,7 @@ Function createDataArr(chArr As Array[String]) As Array[String]
 		' Don't Transformation name for empty split channels
 		if chArr[3] <> "X" and chArr[3] <> "Y" and chArr[3] <> "Z" Then GrpChName = chArr[3]
 		' Exit if channel doesn't have keyframes
+		createDataArr = dataArr
 		Exit Function
 	END IF
 	' Select type of Animation
@@ -138,13 +154,87 @@ Function createDataArr(chArr As Array[String]) As Array[String]
 		If nextKF = "" then Exit Do
 		x += 1
 	LOOP
+	createDataArr = dataArr
+End Function
 
-' DELETE ::: PRINTS =============
-	Dim str As String = ""
-	str.join(dataArr, "\n")
-	println str
-	println("------------------------------------------------------------------")
-' ===============================
+Function formatToCSV(dataArr As Array[Array[String]]) As String
+	Dim formatedStr As String = ""
+	Dim smallestVal As Integer = -1
+	Dim largestVal As Integer = 0
+	Dim newDataArr As Array[Array[String]]
+	' Splits grouped channels into X, Y, and/or Z
+	FOR EACH kfArr IN dataArr
+		dim titleAdd as array[string]
+		"X,Y,Z,A,B,C,D,E,F,G,H,I".Split(",", titleAdd)
+		dim vertexArr, titleArr as array[string]
+		kfArr[0].split(";", titleArr)
+		kfArr[1].Trim
+		kfArr[1].split(" ", vertexArr)
+		IF vertexArr.UBound > 0 THEN
+			Dim splitArr As Array[Array[String]]
+			For n=0 To vertexArr.UBound
+				dim standinArr As array[String]
+				standinArr.Push(titleArr[0] & "*" & titleAdd[n] & ";" & titleArr[1])
+				splitArr.Push(standinArr)
+			Next
+			For i=1 To kfArr.UBound
+				dim arr as array[string]
+				kfArr[i].Trim
+				kfArr[i].split(" ", vertexArr)
+				for n=0 to vertexArr.UBound
+					splitArr[n].Push(vertexArr[n])
+				next
+			Next
+			For Each arr In splitArr
+				newDataArr.Push(arr)
+			Next
+		ELSE
+			newDataArr.Push(kfArr)
+		END IF
+		' Find the earliest time a channel will start animating
+		If smallestVal = -1 then
+			smallestVal = CInt(titleArr[1])
+		ElseIf smallestVal > CInt(titleArr[1]) Then
+			smallestVal = CInt(titleArr[1])
+		End If
+	NEXT
+
+	' Adding values to the begining of the arrays to create similare start time
+	dataArr.Clear()
+	FOR EACH kfArr IN newDataArr
+		dim titleArr, outArr as array[string]
+		kfArr[0].split(";", titleArr)
+		dim subVal As Integer = CInt(titleArr[1]) - smallestVal
+		outArr.Push(titleArr[0])
+		For i=1 To subVal
+			outArr.Push(kfArr[1])
+		Next
+		For i=1 to kfArr.UBound
+			outArr.Push(kfArr[i])
+		Next
+		If outArr.UBound > largestVal Then largestVal = outArr.UBound
+		dataArr.Push(outArr)
+	NEXT
+
+	' Rearrange arrays into a string csv like structure
+	FOR i = 0 TO largestVal
+		dim str As String = ""
+		For j = 0 To dataArr.UBound
+			Dim x As Integer = i
+			If x > dataArr[j].UBound Then x = dataArr[j].UBound
+			If str = "" Then
+				str = dataArr[j][x]
+			Else
+				str = str &";"& dataArr[j][x]
+			End If
+		Next
+		If formatedStr = "" Then
+			formatedStr = str
+		Else
+			formatedStr = formatedStr &"\n"& str
+		End If
+	NEXT
+	formatToCSV = formatedStr
 End Function
 
 
@@ -237,3 +327,4 @@ Sub createCSV(data As String)
 	LOOP
 	System.SaveTextFile(filePath, data)
 End Sub
+
