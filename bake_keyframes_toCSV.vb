@@ -42,7 +42,7 @@ Sub loadList()
 	Dim nameArr, idArr As Array[String]
 	FOR EACH obj IN tempArr
 		SELECT CASE obj[1]
-			CASE "CONTAINER"
+			CASE "CONTAINER", "Rendercamera"
 				dim pass as boolean = True
 				for each idTemp in idArr
 					if CStr(obj[2]) = idTemp then pass = False
@@ -53,9 +53,8 @@ Sub loadList()
 					idArr.Push(CStr(obj[2]))
 				end if
 		END SELECT
-		println CStr(obj[1])
 	NEXT
-	Println "======================================"
+	'Println "======================================"
 	AnimObjArr.Clear()
 	AnimObjArr.Push(nameArr)
 	AnimObjArr.Push(idArr)
@@ -66,12 +65,16 @@ Sub bakeData()
 	println "++++++++ PLEASE WAIT ++++++++++++++++"
 	println("=====================================")
 
-	Dim cont As Container = this
-	Dim contId As String = "#" & CStr(cont.vizId)
-
-	'Check if animated
-	if not(cont.IsAnimated()) then println "ERROR:: Container Not Animated"
-	if not(cont.IsAnimated()) then exit Sub
+	' Find Desired Element
+	Dim contId As String = "#" & CStr(this.vizId)
+	Dim notThis As Boolean = CBool(GetParameterInt("focusObj"))
+	IF notThis THEN
+		contId = AnimObjArr[1][GetParameterInt("listObj")]
+	ELSE
+		'Check if this is animated
+		if not(this.IsAnimated()) then println "ERROR:: Container Not Animated"
+		if not(this.IsAnimated()) then exit Sub
+	END IF
 
 	'Create full array of all elements in this Stage
 	Dim MainArr As Array[Array[String]] = outputDirChArray()
@@ -81,7 +84,7 @@ Sub bakeData()
 
 	'Itterate through all channels and bake keyframes
 	For Each chArr In chsArr
-		if chArr[1].StartsWith("CChannel") then bakeKeyframes(chArr, contId)
+		if chArr[1].StartsWith("CChannel") then bakeKeyframes(chArr, contId, chsArr[0][1])
 	Next
 
 	println("=====================================")
@@ -94,12 +97,16 @@ Sub outputData()
 	println "++++++++ PLEASE WAIT ++++++++++++++++"
 	println("=====================================")
 
-	Dim cont As Container = this
-	Dim contId As String = "#" & CStr(cont.vizId)
-
-	'Check if animated
-	if not(cont.IsAnimated()) then println "ERROR:: Container Not Animated"
-	if not(cont.IsAnimated()) then exit Sub
+	' Find Desired Element
+	Dim contId As String = "#" & CStr(this.vizId)
+	Dim notThis As Boolean = CBool(GetParameterInt("focusObj"))
+	IF notThis THEN
+		contId = AnimObjArr[1][GetParameterInt("listObj")]
+	ELSE
+		'Check if this is animated
+		if not(this.IsAnimated()) then println "ERROR:: Container Not Animated"
+		if not(this.IsAnimated()) then exit Sub
+	END IF
 
 	'Create full array of all elements in this Stage
 	Dim MainArr As Array[Array[String]] = outputDirChArray()
@@ -129,6 +136,16 @@ End Sub
 
 ' FUNCTIONS ==============================================================================
 ' ========================================================================================
+Function isNotAnimated(contId As String) As Boolean
+	Dim boo As Boolean = True
+	Dim arr As Array[String]
+	System.SendCommand(contId & "*DATA GET").Split(" *", arr)
+	For Each str In arr
+		If str = "ANIMATION" Then boo = False
+	Next
+	isNotAnimated = boo
+End Function
+
 Function outputDirChArray() As Array[Array[String]]
 	Dim x As Integer = -1
 	Dim tempArr, innerArr As Array[String]
@@ -283,7 +300,7 @@ End Function
 
 ' SUBROUTINES ============================================================================
 ' ========================================================================================
-Sub bakeKeyframes(chArr As Array[String], contId As String)
+Sub bakeKeyframes(chArr As Array[String], contId As String, thisType As String)
 	Dim x As Integer = 0
 	Dim typeVal As String = ""
 	Dim kfIdArr As Array[String]
@@ -317,12 +334,14 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 	Dim dirIdStr As String = System.SendCommand(chArr[2] & "*DIRECTOR*OBJECT_ID GET")
 	Dim startFrame As Integer = GetParameterInt("startPoint") * getFrame( kfIdArr[0] )
 	Dim endFrame As Integer = getFrame( kfIdArr[kfIdArr.UBound] )
-	' Get an array of all the values in this channel (To help preserve the animation curve, some data will be lost with each pass)
-	FOR i=startFrame TO endFrame
-		Dim newTime As Double = i*System.OutputRefreshRate
-		System.SendCommand(dirIdStr & " SHOW " & newTime)
-		valArr.Push( System.SendCommand(contId & "*" & typeVal & chArr[3] & " GET") )
-	NEXT
+	IF thisType <> "Rendercamera" THEN
+		' Get an array of all the values in this channel (To help preserve the animation curve, some data will be lost with each pass)
+		FOR i=startFrame TO endFrame
+			Dim newTime As Double = i*System.OutputRefreshRate
+			System.SendCommand(dirIdStr & " SHOW " & newTime)
+			valArr.Push( System.SendCommand(contId & "*" & typeVal & chArr[3] & " GET") )
+		NEXT
+	END IF
 	' Bake in-between keyframes (With straight animation curves)
 	FOR i=startFrame TO endFrame
 		Dim isKF As Boolean = False
@@ -346,10 +365,12 @@ Sub bakeKeyframes(chArr As Array[String], contId As String)
 			System.SendCommand(chArr[2] & " ADD_KEYFRAME")
 		End If
 	NEXT
-	' Add values to new keyframes (Pull animation curves)
-	For i=0 To valArr.UBound
-		System.SendCommand(chArr[2] & "*KEYN*"&i& "*VALUE SET " & valArr[i])
-	Next
+	IF thisType <> "Rendercamera" THEN
+		' Add values to new keyframes (Pull animation curves)
+		For i=0 To valArr.UBound
+			System.SendCommand(chArr[2] & "*KEYN*"&i& "*VALUE SET " & valArr[i])
+		Next
+	END IF
 End Sub
 
 Sub createCSV(data As String)
@@ -370,4 +391,3 @@ Sub createCSV(data As String)
 	LOOP
 	System.SaveTextFile(filePath, data)
 End Sub
-
