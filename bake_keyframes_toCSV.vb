@@ -1,8 +1,13 @@
 ' GLOBAL VARIABLES:
 DIM GrpChName AS STRING = ""
+DIM AnimObjArr AS ARRAY[ARRAY[STRING]]
 
 sub OnInitParameters()
 	Dim rbArr As Array[String]
+	"This Container;Select Animated Object".Split(";", rbArr)
+	RegisterRadioButton("focusObj", "Which Animation?", 0, rbArr)
+	"--;--".Split(";", rbArr)
+	RegisterParameterList("listObj", "", 0, rbArr, 450, 400)
 	"Starts From 0; Starts From First Keyframe".Split(";", rbArr)
 	RegisterRadioButton("startPoint", "Starts from?", 1, rbArr)
 	RegisterPushButton("bake", "BAKE KEYFRAMES", 0)
@@ -22,9 +27,40 @@ sub OnExecAction(btnId As Integer)
 	End Select
 end sub
 
+sub OnGuiStatus()
+	Dim isList As Integer = GetParameterInt("focusObj")
+	if CBool(isList) then loadList()
+	If AnimObjArr.UBound <> -1 Then UpdateGuiParameterEntries("listObj", AnimObjArr[0])
+	SendGuiParameterShow("listObj", isList)
+end sub
+
 
 ' EVENT SUBROUTINES ======================================================================
 ' ========================================================================================
+Sub loadList()
+	Dim tempArr As Array[Array[String]] = outputDirChArray()
+	Dim nameArr, idArr As Array[String]
+	FOR EACH obj IN tempArr
+		SELECT CASE obj[1]
+			CASE "CONTAINER"
+				dim pass as boolean = True
+				for each idTemp in idArr
+					if CStr(obj[2]) = idTemp then pass = False
+				next
+				if pass then
+					obj[3].Substitute("\"", "", True)
+					nameArr.Push(CStr(obj[3]))
+					idArr.Push(CStr(obj[2]))
+				end if
+		END SELECT
+		println CStr(obj[1])
+	NEXT
+	Println "======================================"
+	AnimObjArr.Clear()
+	AnimObjArr.Push(nameArr)
+	AnimObjArr.Push(idArr)
+End Sub
+
 Sub bakeData()
 	println("=====================================")
 	println "++++++++ PLEASE WAIT ++++++++++++++++"
@@ -32,6 +68,7 @@ Sub bakeData()
 
 	Dim cont As Container = this
 	Dim contId As String = "#" & CStr(cont.vizId)
+
 	'Check if animated
 	if not(cont.IsAnimated()) then println "ERROR:: Container Not Animated"
 	if not(cont.IsAnimated()) then exit Sub
@@ -59,6 +96,11 @@ Sub outputData()
 
 	Dim cont As Container = this
 	Dim contId As String = "#" & CStr(cont.vizId)
+
+	'Check if animated
+	if not(cont.IsAnimated()) then println "ERROR:: Container Not Animated"
+	if not(cont.IsAnimated()) then exit Sub
+
 	'Create full array of all elements in this Stage
 	Dim MainArr As Array[Array[String]] = outputDirChArray()
 
@@ -91,6 +133,7 @@ Function outputDirChArray() As Array[Array[String]]
 	Dim x As Integer = -1
 	Dim tempArr, innerArr As Array[String]
 	Dim outArr As Array[Array[String]]
+	System.SendCommand("#" & this.stage.vizid & " OPEN_TREE")
 	system.SendCommand("#" & this.stage.vizid & " GET ALL").Split("} {", tempArr)
 	for i=0 to tempArr.UBound
 		tempArr[i].Trim
@@ -327,3 +370,4 @@ Sub createCSV(data As String)
 	LOOP
 	System.SaveTextFile(filePath, data)
 End Sub
+
