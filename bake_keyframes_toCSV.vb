@@ -84,6 +84,9 @@ Sub bakeData()
 
 	'Itterate through all channels and bake keyframes
 	For Each chArr In chsArr
+		'dim str as string = ""
+		'str.Join(chArr, " :: ")
+		'println str
 		if chArr[1].StartsWith("CChannel") then bakeKeyframes(chArr, contId, chsArr[0][1])
 	Next
 
@@ -334,14 +337,17 @@ Sub bakeKeyframes(chArr As Array[String], contId As String, thisType As String)
 	Dim dirIdStr As String = System.SendCommand(chArr[2] & "*DIRECTOR*OBJECT_ID GET")
 	Dim startFrame As Integer = GetParameterInt("startPoint") * getFrame( kfIdArr[0] )
 	Dim endFrame As Integer = getFrame( kfIdArr[kfIdArr.UBound] )
-	IF thisType <> "Rendercamera" THEN
-		' Get an array of all the values in this channel (To help preserve the animation curve, some data will be lost with each pass)
-		FOR i=startFrame TO endFrame
-			Dim newTime As Double = i*System.OutputRefreshRate
-			System.SendCommand(dirIdStr & " SHOW " & newTime)
+	' Get an array of all the values in this channel (To help preserve the animation curve, some data will be lost with each pass)
+	FOR i=startFrame TO endFrame
+		Dim newTime As Double = i*System.OutputRefreshRate
+		System.SendCommand(dirIdStr & " SHOW " & newTime)
+		' IF CAMERA ANIMATION, HANDLE DIFFERENTLY
+		IF thisType <> "Rendercamera" THEN
 			valArr.Push( System.SendCommand(contId & "*" & typeVal & chArr[3] & " GET") )
-		NEXT
-	END IF
+		ELSE
+			valArr.Push(CStr(i))
+		END IF
+	NEXT
 	' Bake in-between keyframes (With straight animation curves)
 	FOR i=startFrame TO endFrame
 		Dim isKF As Boolean = False
@@ -356,8 +362,8 @@ Sub bakeKeyframes(chArr As Array[String], contId As String, thisType As String)
 				isKF = True
 			END IF
 		next
+		' Bake New KeyFrame (time offset, calling next frame position)
 		If not(isKF) Then
-			' Bake New KeyFrame (time offset, calling next frame position)
 			Dim newTime As Double = (i+1)*System.OutputRefreshRate
 			newTime = newTime - (newTime/dropframeOffset)
 			' Must move the stage for multiple director possibilities
@@ -365,12 +371,23 @@ Sub bakeKeyframes(chArr As Array[String], contId As String, thisType As String)
 			System.SendCommand(chArr[2] & " ADD_KEYFRAME")
 		End If
 	NEXT
-	IF thisType <> "Rendercamera" THEN
-		' Add values to new keyframes (Pull animation curves)
-		For i=0 To valArr.UBound
-			System.SendCommand(chArr[2] & "*KEYN*"&i& "*VALUE SET " & valArr[i])
-		Next
-	END IF
+	' Add values to new keyframes only for non-camera objects (Pull animation curves)
+	For i=0 To valArr.UBound
+		' IF NOT ANIMATION SET RECORDED VALUES
+		IF thisType <> "Rendercamera" THEN System.SendCommand(chArr[2] & "*KEYN*"&i& "*VALUE SET " & valArr[i])
+		' Normalize animation handels
+		If chArr[3] = "ROTATION" Then
+			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_X*LEFT_MODE SET LINEAR")
+			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_X*RIGHT_MODE SET LINEAR")
+			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_Y*LEFT_MODE SET LINEAR")
+			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_Y*RIGHT_MODE SET LINEAR")
+			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_Z*LEFT_MODE SET LINEAR")
+			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_Z*RIGHT_MODE SET LINEAR")
+		Else
+			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE*LEFT_MODE SET LINEAR")
+			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE*RIGHT_MODE SET LINEAR")
+		End If
+	Next
 End Sub
 
 Sub createCSV(data As String)
@@ -391,3 +408,4 @@ Sub createCSV(data As String)
 	LOOP
 	System.SaveTextFile(filePath, data)
 End Sub
+

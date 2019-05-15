@@ -3,4 +3,11 @@ _by Israel:_
 Artist plugins
 
 ### List of plugins ###
- * TEST
+ * **bake_keyframe_toCSV.vb**
+    * _Built and tested in version 3.6.3_
+    * A plug-in that bakes most keyframes in VizRT and outputs a csv file.
+    * Has a function to convert the values to an XPression friendly format.
+
+### Left To Fix:
+ * **bake_keyframe_toCSV.vb**
+    * Rotation handels need to be updated:  "HANDLE" -> "HANDLE_X", "HANDLE_Y", "HANDLE_Z"
