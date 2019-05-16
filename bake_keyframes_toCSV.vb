@@ -327,9 +327,11 @@ Sub bakeKeyframes(chArr As Array[String], contId As String, thisType As String)
 	Select Case chArr[3]
 		Case "POSITION","ROTATION","SCALING"
 			typeVal = "TRANSFORMATION*"
+			If thisType = "Rendercamera" Then typeVal = ""
 		Case "X","Y","Z"
 			chArr[3] = GrpChName &"*"& chArr[3]
 			typeVal = "TRANSFORMATION*"
+			If thisType = "Rendercamera" Then typeVal = ""
 		Case "ALPHA"
 			typeVal = "ALPHA*"
 	End Select
@@ -341,12 +343,7 @@ Sub bakeKeyframes(chArr As Array[String], contId As String, thisType As String)
 	FOR i=startFrame TO endFrame
 		Dim newTime As Double = i*System.OutputRefreshRate
 		System.SendCommand(dirIdStr & " SHOW " & newTime)
-		' IF CAMERA ANIMATION, HANDLE DIFFERENTLY
-		IF thisType <> "Rendercamera" THEN
-			valArr.Push( System.SendCommand(contId & "*" & typeVal & chArr[3] & " GET") )
-		ELSE
-			valArr.Push(CStr(i))
-		END IF
+		valArr.Push( System.SendCommand(contId & "*" & typeVal & chArr[3] & " GET") )
 	NEXT
 	' Bake in-between keyframes (With straight animation curves)
 	FOR i=startFrame TO endFrame
@@ -373,10 +370,9 @@ Sub bakeKeyframes(chArr As Array[String], contId As String, thisType As String)
 	NEXT
 	' Add values to new keyframes only for non-camera objects (Pull animation curves)
 	For i=0 To valArr.UBound
-		' IF NOT ANIMATION SET RECORDED VALUES
-		IF thisType <> "Rendercamera" THEN System.SendCommand(chArr[2] & "*KEYN*"&i& "*VALUE SET " & valArr[i])
+		System.SendCommand(chArr[2] & "*KEYN*"&i& "*VALUE SET " & valArr[i])
 		' Normalize animation handels
-		If chArr[3] = "ROTATION" Then
+		If chArr[3] = "ROTATION" Or chArr[3] = "SCALING" Then
 			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_X*LEFT_MODE SET LINEAR")
 			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_X*RIGHT_MODE SET LINEAR")
 			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_Y*LEFT_MODE SET LINEAR")
@@ -408,4 +404,3 @@ Sub createCSV(data As String)
 	LOOP
 	System.SaveTextFile(filePath, data)
 End Sub
-
