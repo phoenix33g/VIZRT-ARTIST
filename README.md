@@ -10,4 +10,4 @@ Artist plugins
 
 ### Left To Fix:
  * **bake_keyframe_toCSV.vb**
-    * Rotation handels need to be updated:  "HANDLE" -> "HANDLE_X", "HANDLE_Y", "HANDLE_Z"
+    * Add XPression Formating Function

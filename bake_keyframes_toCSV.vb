@@ -1,19 +1,35 @@
-' GLOBAL VARIABLES:
+' Creator: Israel Sanchez
+' Ext: 55187; Location: Charlotte, NC
+' ====================================
+' Built and tested in version 3.6.3
+' A plug-in that bakes most keyframes in VizRT and outputs a csv file.
+' Has a function to convert the values to an XPression friendly format.
+' ======================================================================
+
+
+' GLOBAL VARIABLES:=======================================================================
+' ========================================================================================
 DIM GrpChName AS STRING = ""
 DIM AnimObjArr AS ARRAY[ARRAY[STRING]]
 
+' GUI SUBROUTINES ========================================================================
+' ========================================================================================
 sub OnInitParameters()
 	Dim rbArr As Array[String]
 	"This Container;Select Animated Object".Split(";", rbArr)
 	RegisterRadioButton("focusObj", "Which Animation?", 0, rbArr)
 	"--;--".Split(";", rbArr)
-	RegisterParameterList("listObj", "", 0, rbArr, 450, 400)
+	RegisterParameterList("listObj", "", 0, rbArr, 450, 300)
 	"Starts From 0; Starts From First Keyframe".Split(";", rbArr)
 	RegisterRadioButton("startPoint", "Starts from?", 1, rbArr)
 	RegisterPushButton("bake", "BAKE KEYFRAMES", 0)
 	RegisterParameterText("divider1", "", 450, 15)
 	RegisterParameterString("folderPath", "Folder Path","C:\\", 65, 999, "")
 	RegisterParameterString("fileName", "File Name","sample", 65, 999, "")
+	"Viz Format;XPression Format".Split(";", rbArr)
+	RegisterRadioButton("formatType", "Output Format", 0, rbArr)
+	RegisterParameterInt("xpWidth", "XPression Scene Width", 1280, 0, 9999)
+	RegisterParameterInt("xpHeight", "XPression Scene Height", 720, 0, 9999)
 	RegisterPushButton("load", "LOAD DATA TO CSV", 1)
 end sub
 
@@ -28,10 +44,15 @@ sub OnExecAction(btnId As Integer)
 end sub
 
 sub OnGuiStatus()
+	' Focus Object GUI Updater
 	Dim isList As Integer = GetParameterInt("focusObj")
 	if CBool(isList) then loadList()
 	If AnimObjArr.UBound <> -1 Then UpdateGuiParameterEntries("listObj", AnimObjArr[0])
 	SendGuiParameterShow("listObj", isList)
+	' Format Type GUI Updater
+	Dim isXP As Integer = GetParameterInt("formatType")
+	SendGuiParameterShow("xpWidth", isXP)
+	SendGuiParameterShow("xpHeight", isXP)
 end sub
 
 
@@ -54,7 +75,6 @@ Sub loadList()
 				end if
 		END SELECT
 	NEXT
-	'Println "======================================"
 	AnimObjArr.Clear()
 	AnimObjArr.Push(nameArr)
 	AnimObjArr.Push(idArr)
@@ -71,18 +91,18 @@ Sub bakeData()
 	IF notThis THEN
 		contId = AnimObjArr[1][GetParameterInt("listObj")]
 	ELSE
-		'Check if this is animated
+		' Check if this is animated
 		if not(this.IsAnimated()) then println "ERROR:: Container Not Animated"
 		if not(this.IsAnimated()) then exit Sub
 	END IF
 
-	'Create full array of all elements in this Stage
+	' Create full array of all elements in this Stage
 	Dim MainArr As Array[Array[String]] = outputDirChArray()
 
-	'Find sub array of desired channels (this container)
+	' Find sub array of desired channels (this container)
 	Dim chsArr As Array[Array[String]] = chSubArray(MainArr, contId)
 
-	'Itterate through all channels and bake keyframes
+	' Itterate through all channels and bake keyframes
 	For Each chArr In chsArr
 		'dim str as string = ""
 		'str.Join(chArr, " :: ")
@@ -106,29 +126,36 @@ Sub outputData()
 	IF notThis THEN
 		contId = AnimObjArr[1][GetParameterInt("listObj")]
 	ELSE
-		'Check if this is animated
+		' Check if this is animated
 		if not(this.IsAnimated()) then println "ERROR:: Container Not Animated"
 		if not(this.IsAnimated()) then exit Sub
 	END IF
 
-	'Create full array of all elements in this Stage
+	' Create full array of all elements in this Stage
 	Dim MainArr As Array[Array[String]] = outputDirChArray()
 
-	'Find sub array of desired channels (this container)
+	' Find sub array of desired channels (this container)
 	Dim chsArr As Array[Array[String]] = chSubArray(MainArr, contId)
 
-	'Itterate through all keyframes in all channels
+	' Itterate through all keyframes in all channels
 	Dim dataArr As Array[Array[String]]
 	For Each chArr In chsArr
 		dim tempArr as array[string] = createDataArr(chArr)
 		If tempArr.UBound <> -1 Then dataArr.Push( tempArr )
 	Next
 
-	'Create csv structure
-	Dim data As String = formatToCSV(dataArr)
+	' Formating
+	Dim largestVal As Integer = 0
+	Dim formatedDataArr As Array[Array[String]] = formatStartFrame(dataArr,largestVal)
+	If CBool(GetParameterInt("formatType")) Then formatedDataArr = formatForXP( dataArr, chsArr[0][1], contId )
+
+	' Create csv structure
+	Dim data As String = formatToCSV(formatedDataArr,largestVal)
+	println data
+	exit sub
 
 
-	'Output csv file to desired folder
+	' Output csv file to desired folder
 	createCSV(data)
 
 	println("=====================================")
@@ -139,6 +166,66 @@ End Sub
 
 ' FUNCTIONS ==============================================================================
 ' ========================================================================================
+Function formatForXP( dataArr As Array[Array[String]], type As String, contId As String ) As Array[Array[String]]
+	Dim outputArr As Array[Array[String]]
+	Dim width As Double = GetParameterInt("xpWidth")/2
+	Dim height As Double = GetParameterInt("xpHeight")/2
+	type.MakeUpper()
+	Select Case type
+		Case "CONTAINER"
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*X\"", "\"Position X\"", contId, "*TRANSFORMATION*POSITION*X GET", width, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*Y\"", "\"Position Y\"", contId, "*TRANSFORMATION*POSITION*Y GET", height, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*Z\"", "\"Position Z\"", contId, "*TRANSFORMATION*POSITION*Z GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"ROTATION*X\"", "\"Rotation X\"", contId, "*TRANSFORMATION*ROTATION*X GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"ROTATION*Y\"", "\"Rotation Y\"", contId, "*TRANSFORMATION*ROTATION*Y GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"ROTATION*Z\"", "\"Rotation Z\"", contId, "*TRANSFORMATION*ROTATION*Z GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"SCALING*X\"", "\"Scaling X\"", contId, "*TRANSFORMATION*SCALING*X GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"SCALING*Y\"", "\"Scaling Y\"", contId, "*TRANSFORMATION*SCALING*Y GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"SCALING*Z\"", "\"Scaling Z\"", contId, "*TRANSFORMATION*SCALING*Z GET", 0.0, 1.0 ))
+			' Maybe setup Pivot / *TRANSFORMATION*CENTER
+			outputArr.Push(formatChannel( dataArr, "\"ALPHA\"", "\"Alpha\"", contId, "*ALPHA*ALPHA GET", 0.0, 1.0 ))
+		Case "RENDERCAMERA"
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*X\"", "\"Position X\"", contId, "*POSITION*X GET", width, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*Y\"", "\"Position Y\"", contId, "*POSITION*Y GET", height, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*Z\"", "\"Position Z\"", contId, "*POSITION*Z GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"TILT\"", "\"Rotation X\"", contId, "*TILT GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"PAN\"", "\"Rotation Y\"", contId, "*PAN GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"TWIST\"", "\"Rotation Z\"", contId, "*TWIST GET", 0.0, -1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"ZOOM\"", "\"FOV\"", contId, "*ZOOM GET", 0.0, 1.0 ))
+	End Select
+	formatForXP = outputArr
+End Function
+
+Function formatChannel( dataArr As Array[Array[String]], chName As String, newName As String, contId As String, command As String, adding As Double, scaling As Double ) As Array[String]
+	' SET NEW NAME
+	Dim chArr, outputArr As Array[String]
+	outputArr.Push(newName)
+	' Find array with correct channel
+	FOR EACH ch IN dataArr
+		If ch[0] = chName Then chArr = ch
+	NEXT
+	' Check if empty, if yes create an array of current value.
+	IF chArr.Ubound < 0 THEN
+		chArr.Push(chName)
+		' Check For Alpha Channel
+		dim val as string = "100.0"
+		If chName = "\"ALPHA\"" Then
+			dim txData As String = System.SendCommand( contId & "*DATA GET" )
+			if txData.Match("ALPHA") then val = System.SendCommand( contId & command )
+		Else
+			val = System.SendCommand( contId & command )
+		End If
+		chArr.Push(val)
+	END IF
+	' Add offsets to keyframes
+	FOR i=1 TO chArr.UBound
+		dim value As Double = CDbl( chArr[i] )
+		value = (scaling*value) + adding
+		outputArr.Push( CStr(value) )
+	NEXT
+	formatChannel = outputArr
+End Function
+
 Function isNotAnimated(contId As String) As Boolean
 	Dim boo As Boolean = True
 	Dim arr As Array[String]
@@ -220,10 +307,10 @@ Function createDataArr(chArr As Array[String]) As Array[String]
 	createDataArr = dataArr
 End Function
 
-Function formatToCSV(dataArr As Array[Array[String]]) As String
-	Dim formatedStr As String = ""
+Function formatStartFrame(dataArr As Array[Array[String]], ByRef largestVal As Integer) As Array[Array[String]]
+	'Dim formatedStr As String = ""
 	Dim smallestVal As Integer = -1
-	Dim largestVal As Integer = 0
+	'Dim largestVal As Integer = 0
 	Dim newDataArr As Array[Array[String]]
 	' Splits grouped channels into X, Y, and/or Z
 	FOR EACH kfArr IN dataArr
@@ -278,8 +365,12 @@ Function formatToCSV(dataArr As Array[Array[String]]) As String
 		If outArr.UBound > largestVal Then largestVal = outArr.UBound
 		dataArr.Push(outArr)
 	NEXT
+	formatStartFrame = dataArr
+End Function
 
+Function formatToCSV(dataArr As Array[Array[String]], largestVal As Integer) As String
 	' Rearrange arrays into a string csv like structure
+	Dim formatedStr As String = ""
 	FOR i = 0 TO largestVal
 		dim str As String = ""
 		For j = 0 To dataArr.UBound
