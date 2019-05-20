@@ -104,9 +104,6 @@ Sub bakeData()
 
 	' Itterate through all channels and bake keyframes
 	For Each chArr In chsArr
-		'dim str as string = ""
-		'str.Join(chArr, " :: ")
-		'println str
 		if chArr[1].StartsWith("CChannel") then bakeKeyframes(chArr, contId, chsArr[0][1])
 	Next
 
@@ -151,8 +148,6 @@ Sub outputData()
 
 	' Create csv structure
 	Dim data As String = formatToCSV(formatedDataArr,largestVal)
-	println data
-	exit sub
 
 
 	' Output csv file to desired folder
