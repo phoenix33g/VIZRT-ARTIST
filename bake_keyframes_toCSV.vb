@@ -179,7 +179,7 @@ Function formatForXP( dataArr As Array[Array[String]], type As String, contId As
 			outputArr.Push(formatChannel( dataArr, "\"SCALING*Y\"", "\"Scaling Y\"", contId, "*TRANSFORMATION*SCALING*Y GET", 0.0, 1.0 ))
 			outputArr.Push(formatChannel( dataArr, "\"SCALING*Z\"", "\"Scaling Z\"", contId, "*TRANSFORMATION*SCALING*Z GET", 0.0, 1.0 ))
 			' Maybe setup Pivot / *TRANSFORMATION*CENTER
-			outputArr.Push(formatChannel( dataArr, "\"ALPHA\"", "\"Alpha\"", contId, "*ALPHA*ALPHA GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"ALPHA\"", "\"Alpha\"", contId, "*ALPHA*ALPHA GET", 0.0, 0.01 ))
 		Case "RENDERCAMERA"
 			outputArr.Push(formatChannel( dataArr, "\"POSITION*X\"", "\"Position X\"", contId, "*POSITION*X GET", width, 1.0 ))
 			outputArr.Push(formatChannel( dataArr, "\"POSITION*Y\"", "\"Position Y\"", contId, "*POSITION*Y GET", height, 1.0 ))
