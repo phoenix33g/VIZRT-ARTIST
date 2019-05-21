@@ -10,4 +10,4 @@ Artist plugins
 
 ### Left To Fix:
  * **bake_keyframe_toCSV.vb**
-    * Add XPression Formating Function
+    * Add a custom offset
