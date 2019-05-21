@@ -4,6 +4,7 @@
 ' Built and tested in version 3.6.3
 ' A plug-in that bakes most keyframes in VizRT and outputs a csv file.
 ' Has a function to convert the values to an XPression friendly format.
+' Can only handle creating around 16,000 keyframes before it runs too low on memory.
 ' ======================================================================
 
 
@@ -268,7 +269,8 @@ Function chSubArray(MainArr As Array[Array[String]], vizId As String) As Array[A
 End Function
 
 Function getFrame(kfId As String) As Integer
-	getFrame = CInt(CDbl(System.SendCommand(kfId & "*TIME GET"))/System.OutputRefreshRate)
+	Dim kfTime As Double =  CDbl(System.SendCommand(kfId & "*TIME GET"))/System.OutputRefreshRate
+	getFrame = CInt( Round(kfTime) )
 End Function
 
 Function createDataArr(chArr As Array[String]) As Array[String]
@@ -427,30 +429,23 @@ Sub bakeKeyframes(chArr As Array[String], contId As String, thisType As String)
 	Dim endFrame As Integer = getFrame( kfIdArr[kfIdArr.UBound] )
 	' Get an array of all the values in this channel (To help preserve the animation curve, some data will be lost with each pass)
 	FOR i=startFrame TO endFrame
-		Dim newTime As Double = i*System.OutputRefreshRate
-		System.SendCommand(dirIdStr & " SHOW " & newTime)
+		System.SendCommand(dirIdStr & " SHOW F" & i)
 		valArr.Push( System.SendCommand(contId & "*" & typeVal & chArr[3] & " GET") )
 	NEXT
 	' Bake in-between keyframes (With straight animation curves)
 	FOR i=startFrame TO endFrame
 		Dim isKF As Boolean = False
-		Dim dropframeOffset As Integer = 22/System.OutputRefreshRate
-		Dim tempTime As Integer = CInt( 1000 * (i*System.OutputRefreshRate) )
-		tempTime = tempTime - CInt(tempTime/dropframeOffset)
 		for each kfId in kfIdArr
-			Dim kfTime As Integer = CInt( 1000 * CDbl(System.SendCommand(kfId & "*TIME GET")) )
-			Dim subVal As Integer = Sign(CDbl(tempTime - kfTime)) * (tempTime - kfTime)
-			IF subVal <= 5 AND subVal >=0 THEN
+			Dim kfFrame As Integer = getFrame( kfId )
+			IF kfFrame = i THEN
 				' ALREADY HAS A FRAME
 				isKF = True
 			END IF
 		next
-		' Bake New KeyFrame (time offset, calling next frame position)
+		' Bake New KeyFrame
 		If not(isKF) Then
-			Dim newTime As Double = (i+1)*System.OutputRefreshRate
-			newTime = newTime - (newTime/dropframeOffset)
 			' Must move the stage for multiple director possibilities
-			System.SendCommand(dirIdStr & "*STAGE SHOW " & newTime)
+			System.SendCommand(dirIdStr & "*STAGE SHOW F" & i)
 			System.SendCommand(chArr[2] & " ADD_KEYFRAME")
 		End If
 	NEXT
