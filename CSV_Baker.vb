@@ -27,10 +27,32 @@ sub OnInitParameters()
 	RegisterParameterText("divider1", "", 450, 15)
 	RegisterParameterString("folderPath", "Folder Path","C:\\", 65, 999, "")
 	RegisterParameterString("fileName", "File Name","sample", 65, 999, "")
-	"Viz Format;XPression Format".Split(";", rbArr)
+	"Viz Format;XPression Format;Custom Format".Split(";", rbArr)
 	RegisterRadioButton("formatType", "Output Format", 0, rbArr)
 	RegisterParameterInt("xpWidth", "XPression Scene Width", 1280, 0, 9999)
 	RegisterParameterInt("xpHeight", "XPression Scene Height", 720, 0, 9999)
+	RegisterParameterDouble("px", "Position X Offset", 0., -9999, 9999)
+	RegisterParameterDouble("pxs", "Position X Scale", 1.0, -9999, 9999)
+	RegisterParameterDouble("py", "Position Y Offset", 0., -9999, 9999)
+	RegisterParameterDouble("pys", "Position Y Scale", 1.0, -9999, 9999)
+	RegisterParameterDouble("pz", "Position Z Offset", 0., -9999, 9999)
+	RegisterParameterDouble("pzs", "Position Z Scale", 1.0, -9999, 9999)
+	RegisterParameterDouble("rx", "Rotation X Offset", 0., -9999, 9999)
+	RegisterParameterDouble("rxs", "Rotation X Scale", 1.0, -9999, 9999)
+	RegisterParameterDouble("ry", "Rotation Y Offset", 0., -9999, 9999)
+	RegisterParameterDouble("rys", "Rotation Y Scale", 1.0, -9999, 9999)
+	RegisterParameterDouble("rz", "Rotation Z Offset", 0., -9999, 9999)
+	RegisterParameterDouble("rzs", "Rotation Z Scale", 1.0, -9999, 9999)
+	RegisterParameterDouble("sx", "Scaling X Offset", 0., -9999, 9999)
+	RegisterParameterDouble("sxs", "Scaling X Scale", 1.0, -9999, 9999)
+	RegisterParameterDouble("sy", "Scaling Y Offset", 0., -9999, 9999)
+	RegisterParameterDouble("sys", "Scaling Y Scale", 1.0, -9999, 9999)
+	RegisterParameterDouble("sz", "Scaling Z Offset", 0., -9999, 9999)
+	RegisterParameterDouble("szs", "Scaling Z Scale", 1.0, -9999, 9999)
+	RegisterParameterDouble("alpha", "Alpha Offset", 0., -9999, 9999)
+	RegisterParameterDouble("alphas", "Alpha Scale", 0.01, -9999, 9999)
+	RegisterParameterDouble("fov", "FOV Offset", 0., -9999, 9999)
+	RegisterParameterDouble("fovs", "FOV Scale", 1.0, -9999, 9999)
 	RegisterPushButton("load", "LOAD DATA TO CSV", 1)
 end sub
 
@@ -51,9 +73,34 @@ sub OnGuiStatus()
 	If AnimObjArr.UBound <> -1 Then UpdateGuiParameterEntries("listObj", AnimObjArr[0])
 	SendGuiParameterShow("listObj", isList)
 	' Format Type GUI Updater
-	Dim isXP As Integer = GetParameterInt("formatType")
+	Dim isCustom As Integer = GetParameterInt("formatType")
+	Dim isXP As Integer = 0
+	If isCustom = 1 Then isXP = 1
 	SendGuiParameterShow("xpWidth", isXP)
 	SendGuiParameterShow("xpHeight", isXP)
+	If isCustom <> 0 Then isCustom -= 1
+	SendGuiParameterShow("px", isCustom)
+	SendGuiParameterShow("pxs", isCustom)
+	SendGuiParameterShow("py", isCustom)
+	SendGuiParameterShow("pys", isCustom)
+	SendGuiParameterShow("pz", isCustom)
+	SendGuiParameterShow("pzs", isCustom)
+	SendGuiParameterShow("rx", isCustom)
+	SendGuiParameterShow("rxs", isCustom)
+	SendGuiParameterShow("ry", isCustom)
+	SendGuiParameterShow("rys", isCustom)
+	SendGuiParameterShow("rz", isCustom)
+	SendGuiParameterShow("rzs", isCustom)
+	SendGuiParameterShow("sx", isCustom)
+	SendGuiParameterShow("sxs", isCustom)
+	SendGuiParameterShow("sy", isCustom)
+	SendGuiParameterShow("sys", isCustom)
+	SendGuiParameterShow("sz", isCustom)
+	SendGuiParameterShow("szs", isCustom)
+	SendGuiParameterShow("alpha", isCustom)
+	SendGuiParameterShow("alphas", isCustom)
+	SendGuiParameterShow("fov", isCustom)
+	SendGuiParameterShow("fovs", isCustom)
 end sub
 
 
@@ -164,30 +211,82 @@ End Sub
 ' ========================================================================================
 Function formatForXP( dataArr As Array[Array[String]], type As String, contId As String ) As Array[Array[String]]
 	Dim outputArr As Array[Array[String]]
+	Dim formatType As Integer = GetParameterInt("formatType")
+	Dim px, py, pz, rx, ry, rz, sx, sy, sz, alpha, fov, pxs, pys, pzs, rxs, rys, rzs, sxs, sys, szs, alphas, fovs As Double
 	Dim width As Double = GetParameterInt("xpWidth")/2
 	Dim height As Double = GetParameterInt("xpHeight")/2
+	' Select correct format type values
 	type.MakeUpper()
+	If formatType = 1 Then
+		px = GetParameterInt("xpWidth")/2
+		pxs = 1.0
+		py = GetParameterInt("xpHeight")/2
+		pys = 1.0
+		pz = 0.0
+		pzs = 1.0
+		rx = 0.0
+		rxs = 1.0
+		ry = 0.0
+		rys = 1.0
+		rz = 0.0
+		rzs = 1.0
+		if type = "RENDERCAMERA" then rzs = -1.0
+		sx = 0.0
+		sxs = 1.0
+		sy = 0.0
+		sys = 1.0
+		sz = 0.0
+		szs = 1.0
+		alpha = 0.0
+		alphas = 0.01
+		fov = 0.0
+		fovs = 1.0
+	ElseIf formatType = 2 Then
+		px = GetParameterDouble("px")
+		pxs = GetParameterDouble("pxs")
+		py = GetParameterDouble("py")
+		pys = GetParameterDouble("pys")
+		pz = GetParameterDouble("pz")
+		pzs = GetParameterDouble("pzs")
+		rx = GetParameterDouble("rx")
+		rxs = GetParameterDouble("rxs")
+		ry = GetParameterDouble("ry")
+		rys = GetParameterDouble("rys")
+		rz = GetParameterDouble("rz")
+		rzs = GetParameterDouble("rzs")
+		sx = GetParameterDouble("sx")
+		sxs = GetParameterDouble("sxs")
+		sy = GetParameterDouble("sy")
+		sys = GetParameterDouble("sys")
+		sz = GetParameterDouble("sz")
+		szs = GetParameterDouble("szs")
+		alpha = GetParameterDouble("alpha")
+		alphas = GetParameterDouble("alphas")
+		fov = GetParameterDouble("fov")
+		fovs = GetParameterDouble("fovs")
+	End If
+	' Push values to array
 	Select Case type
 		Case "CONTAINER"
-			outputArr.Push(formatChannel( dataArr, "\"POSITION*X\"", "\"Position X\"", contId, "*TRANSFORMATION*POSITION*X GET", width, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"POSITION*Y\"", "\"Position Y\"", contId, "*TRANSFORMATION*POSITION*Y GET", height, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"POSITION*Z\"", "\"Position Z\"", contId, "*TRANSFORMATION*POSITION*Z GET", 0.0, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"ROTATION*X\"", "\"Rotation X\"", contId, "*TRANSFORMATION*ROTATION*X GET", 0.0, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"ROTATION*Y\"", "\"Rotation Y\"", contId, "*TRANSFORMATION*ROTATION*Y GET", 0.0, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"ROTATION*Z\"", "\"Rotation Z\"", contId, "*TRANSFORMATION*ROTATION*Z GET", 0.0, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"SCALING*X\"", "\"Scaling X\"", contId, "*TRANSFORMATION*SCALING*X GET", 0.0, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"SCALING*Y\"", "\"Scaling Y\"", contId, "*TRANSFORMATION*SCALING*Y GET", 0.0, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"SCALING*Z\"", "\"Scaling Z\"", contId, "*TRANSFORMATION*SCALING*Z GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*X\"", "\"Position X\"", contId, "*TRANSFORMATION*POSITION*X GET", px, pxs ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*Y\"", "\"Position Y\"", contId, "*TRANSFORMATION*POSITION*Y GET", py, pys ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*Z\"", "\"Position Z\"", contId, "*TRANSFORMATION*POSITION*Z GET", pz, pzs ))
+			outputArr.Push(formatChannel( dataArr, "\"ROTATION*X\"", "\"Rotation X\"", contId, "*TRANSFORMATION*ROTATION*X GET", rx, rxs ))
+			outputArr.Push(formatChannel( dataArr, "\"ROTATION*Y\"", "\"Rotation Y\"", contId, "*TRANSFORMATION*ROTATION*Y GET", ry, rys ))
+			outputArr.Push(formatChannel( dataArr, "\"ROTATION*Z\"", "\"Rotation Z\"", contId, "*TRANSFORMATION*ROTATION*Z GET", rz, rzs ))
+			outputArr.Push(formatChannel( dataArr, "\"SCALING*X\"", "\"Scaling X\"", contId, "*TRANSFORMATION*SCALING*X GET", sx, sxs ))
+			outputArr.Push(formatChannel( dataArr, "\"SCALING*Y\"", "\"Scaling Y\"", contId, "*TRANSFORMATION*SCALING*Y GET", sy, sys ))
+			outputArr.Push(formatChannel( dataArr, "\"SCALING*Z\"", "\"Scaling Z\"", contId, "*TRANSFORMATION*SCALING*Z GET", sz, szs ))
 			' Maybe setup Pivot / *TRANSFORMATION*CENTER
-			outputArr.Push(formatChannel( dataArr, "\"ALPHA\"", "\"Alpha\"", contId, "*ALPHA*ALPHA GET", 0.0, 0.01 ))
+			outputArr.Push(formatChannel( dataArr, "\"ALPHA\"", "\"Alpha\"", contId, "*ALPHA*ALPHA GET", alpha, alphas ))
 		Case "RENDERCAMERA"
-			outputArr.Push(formatChannel( dataArr, "\"POSITION*X\"", "\"Position X\"", contId, "*POSITION*X GET", width, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"POSITION*Y\"", "\"Position Y\"", contId, "*POSITION*Y GET", height, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"POSITION*Z\"", "\"Position Z\"", contId, "*POSITION*Z GET", 0.0, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"TILT\"", "\"Rotation X\"", contId, "*TILT GET", 0.0, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"PAN\"", "\"Rotation Y\"", contId, "*PAN GET", 0.0, 1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"TWIST\"", "\"Rotation Z\"", contId, "*TWIST GET", 0.0, -1.0 ))
-			outputArr.Push(formatChannel( dataArr, "\"ZOOM\"", "\"FOV\"", contId, "*ZOOM GET", 0.0, 1.0 ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*X\"", "\"Position X\"", contId, "*POSITION*X GET", px, pxs ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*Y\"", "\"Position Y\"", contId, "*POSITION*Y GET", py, pys ))
+			outputArr.Push(formatChannel( dataArr, "\"POSITION*Z\"", "\"Position Z\"", contId, "*POSITION*Z GET", pz, pzs ))
+			outputArr.Push(formatChannel( dataArr, "\"TILT\"", "\"Rotation X\"", contId, "*TILT GET", rx, rxs ))
+			outputArr.Push(formatChannel( dataArr, "\"PAN\"", "\"Rotation Y\"", contId, "*PAN GET", ry, rys ))
+			outputArr.Push(formatChannel( dataArr, "\"TWIST\"", "\"Rotation Z\"", contId, "*TWIST GET", rz, rzs ))
+			outputArr.Push(formatChannel( dataArr, "\"ZOOM\"", "\"FOV\"", contId, "*ZOOM GET", fov, fovs ))
 	End Select
 	formatForXP = outputArr
 End Function
@@ -460,6 +559,8 @@ Sub bakeKeyframes(chArr As Array[String], contId As String, thisType As String)
 			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_Y*RIGHT_MODE SET LINEAR")
 			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_Z*LEFT_MODE SET LINEAR")
 			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE_Z*RIGHT_MODE SET LINEAR")
+		ElseIf chArr[1] = "CChannelBool" Then
+			' No Handles option for these types
 		Else
 			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE*LEFT_MODE SET LINEAR")
 			System.SendCommand(chArr[2] & "*KEYN*"&i& "*HANDLE*RIGHT_MODE SET LINEAR")
